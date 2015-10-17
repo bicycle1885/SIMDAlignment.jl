@@ -1,5 +1,5 @@
-CXX_RELEASE_FLAGS = -Wall -std=c++11 -fPIC -msse2 -O3 -march=native
-CXX_DEBUG_FLAGS   = -Wall -std=c++11 -fPIC -msse2 -O0 -g
+CXX_RELEASE_FLAGS = -Wall -std=c++11 -fPIC -msse4 -O3 -march=native
+CXX_DEBUG_FLAGS   = -Wall -std=c++11 -fPIC -msse4 -O0 -g
 
 .PHONY: release
 release: CXXFLAGS = $(CXX_RELEASE_FLAGS)

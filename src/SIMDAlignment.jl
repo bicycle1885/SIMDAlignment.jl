@@ -82,7 +82,7 @@ function paralign_score(submat, gap_open, gap_extend, seq, refs)
     end
     buffer = make_buffer()
     ret = ccall(
-        (:paralign_score, libsimdalign),
+        (:paralign_score_i16, libsimdalign),
         Cint,
         (Ptr{Void}, submat_t{score_t}, score_t, score_t, seq_t, Ptr{seq_t}, Cint, Ptr{Void}),
         buffer, submat_t(submat), gap_open, gap_extend, seq_t(seq), pointer(refs), length(refs), alns

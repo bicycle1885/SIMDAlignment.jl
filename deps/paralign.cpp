@@ -22,12 +22,14 @@ struct slot_t
 
 const slot_t empty_slot = slot_t(-1, 0);
 
+template<typename score_t>
 static inline score_t affine_gap_score(int k, score_t gap_open, score_t gap_extend)
 {
     return k > 0 ? -(gap_open + gap_extend * k) : 0;
 }
 
-static bool is_vacant(const std::array<slot_t,8> slots)
+template<size_t n>
+static bool is_vacant(const std::array<slot_t,n> slots)
 {
     for (const slot_t& slot : slots)
         if (slot != empty_slot)
@@ -35,11 +37,12 @@ static bool is_vacant(const std::array<slot_t,8> slots)
     return true;
 }
 
-static void fill_profile(const seq_t* refs, const std::array<slot_t,8>& slots, const submat_t<score_t> submat, __m128i* profile)
+template<typename score_t,size_t n>
+static void fill_profile(const seq_t* refs, const std::array<slot_t,n>& slots, const submat_t<score_t> submat, __m128i* profile)
 {
     for (uint8_t seq_char = 0; seq_char < submat.size; seq_char++) {
-        std::array<score_t,8> svec;
-        for (int k = 0; k < 8; k++) {
+        std::array<score_t,n> svec;
+        for (int k = 0; k < n; k++) {
             slot_t slot = slots[k];
             if (slot == empty_slot)
                 continue;
@@ -50,16 +53,17 @@ static void fill_profile(const seq_t* refs, const std::array<slot_t,8>& slots, c
     }
 }
 
-static __m128i initH(const std::array<slot_t,8>& slots, const score_t gap_open, const score_t gap_extend)
+template<typename score_t,size_t n>
+static __m128i initH(const std::array<slot_t,n>& slots, const score_t gap_open, const score_t gap_extend)
 {
-    std::array<score_t,8> svec;
-    for (int k = 0; k < 8; k++)
+    std::array<score_t,n> svec;
+    for (int k = 0; k < n; k++)
         svec[k] = affine_gap_score(slots[k].pos, gap_open, gap_extend);
     return simd_set(svec);
 }
 
 
-//template<typename T>
+template<typename score_t>
 int paralign_score(buffer_t* buffer,
                    const submat_t<score_t> submat,
                    const score_t gap_open,
@@ -165,4 +169,28 @@ int paralign_score(buffer_t* buffer,
     }
 
     return 0;
+}
+
+int paralign_score_i8(buffer_t* buffer,
+                      const submat_t<int8_t> submat,
+                      const int8_t gap_open,
+                      const int8_t gap_extend,
+                      const seq_t seq,
+                      const seq_t* refs,
+                      const int n_refs,
+                      alignment_t<int8_t>** alignments)
+{
+    return paralign_score(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
+}
+
+int paralign_score_i16(buffer_t* buffer,
+                       const submat_t<int16_t> submat,
+                       const int16_t gap_open,
+                       const int16_t gap_extend,
+                       const seq_t seq,
+                       const seq_t* refs,
+                       const int n_refs,
+                       alignment_t<int16_t>** alignments)
+{
+    return paralign_score(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }

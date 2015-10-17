@@ -5,8 +5,6 @@
 #include "stdint.h"
 #include "simd.h"
 
-typedef int16_t score_t;
-
 // sequence
 struct seq_t
 {
@@ -66,18 +64,6 @@ struct buffer_t
     size_t len;
 };
 
-/*
-template<>
-struct profile_s<int8_t>;
-template<>
-struct profile_s<int16_t>;
-
-template<>
-struct submat_s<int8_t>;
-template<>
-struct submat_s<int16_t>;
-*/
-
 
 extern "C"
 {
@@ -86,19 +72,22 @@ extern "C"
     void free_buffer(buffer_t*);
 
     // paralign.cpp
-    int paralign_score(buffer_t* buffer,
-                       const submat_t<score_t> submat,
-                       const score_t gap_open,
-                       const score_t gap_extend,
-                       const seq_t seq,
-                       const seq_t* refs,
-                       const int n_refs,
-                       alignment_t<score_t>** alignments);
-
-    typedef profile_s<int8_t> profile8_t;
-    typedef profile_s<int16_t> profile16_t;
-    typedef submat_t<int8_t> submat8_t;
-    typedef submat_t<int16_t> submat16_t;
+    int paralign_score_i8(buffer_t* buffer,
+                          const submat_t<int8_t> submat,
+                          const int8_t gap_open,
+                          const int8_t gap_extend,
+                          const seq_t seq,
+                          const seq_t* refs,
+                          const int n_refs,
+                          alignment_t<int8_t>** alignments);
+    int paralign_score_i16(buffer_t* buffer,
+                           const submat_t<int16_t> submat,
+                           const int16_t gap_open,
+                           const int16_t gap_extend,
+                           const seq_t seq,
+                           const seq_t* refs,
+                           const int n_refs,
+                           alignment_t<int16_t>** alignments);
 }
 
 #endif
