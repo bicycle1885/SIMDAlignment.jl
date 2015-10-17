@@ -29,6 +29,12 @@ function Base.convert{T<:Byte}(::Type{seq_t}, seq::Vector{T})
     return seq_t(pointer(seq), 1, length(seq), false)
 end
 
+function Base.convert{T}(::Type{seq_t}, seq::NucleotideSequence{T})
+    # TODO: optimize
+    byteseq = convert(Vector{T}, seq)
+    return seq_t(byteseq)
+end
+
 
 # substitution matrix
 immutable submat_t{T}
