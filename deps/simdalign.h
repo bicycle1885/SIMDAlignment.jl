@@ -8,7 +8,7 @@
 typedef int16_t score_t;
 
 // sequence
-typedef struct seq_s
+struct seq_t
 {
     uint8_t* data;
     size_t startpos;
@@ -19,7 +19,7 @@ typedef struct seq_s
     uint8_t operator[](const int i) const {
         return data[i];
     };
-} seq_t;
+};
 
 
 // sequence profile
@@ -32,7 +32,7 @@ struct profile_s
 
 // substitution matrix (rectangular matrix: size x size)
 template<typename T>
-struct submat_s
+struct submat_t
 {
     T* data;
     int size;
@@ -60,11 +60,11 @@ struct alignment_t
 };
 
 // working space
-typedef struct buffer_s
+struct buffer_t
 {
     void* data;
     size_t len;
-} buffer_t;
+};
 
 /*
 template<>
@@ -87,7 +87,7 @@ extern "C"
 
     // paralign.cpp
     int paralign_score(buffer_t* buffer,
-                       const submat_s<score_t> submat,
+                       const submat_t<score_t> submat,
                        const score_t gap_open,
                        const score_t gap_extend,
                        const seq_t seq,
@@ -97,8 +97,8 @@ extern "C"
 
     typedef profile_s<int8_t> profile8_t;
     typedef profile_s<int16_t> profile16_t;
-    typedef submat_s<int8_t> submat8_t;
-    typedef submat_s<int16_t> submat16_t;
+    typedef submat_t<int8_t> submat8_t;
+    typedef submat_t<int16_t> submat16_t;
 }
 
 #endif

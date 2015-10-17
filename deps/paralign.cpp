@@ -29,7 +29,7 @@ static inline score_t affine_gap_score(int k, score_t gap_open, score_t gap_exte
 
 //template<typename T>
 int paralign_score(buffer_t* buffer,
-                   const submat_s<score_t> submat,
+                   const submat_t<score_t> submat,
                    const score_t gap_open,
                    const score_t gap_extend,
                    const seq_t seq,
