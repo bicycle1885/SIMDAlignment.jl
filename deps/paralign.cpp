@@ -21,7 +21,6 @@ struct slot_t
 };
 
 const slot_t empty_slot = slot_t(-1, 0);
-//const int empty_slot = -1;
 
 static inline score_t affine_gap_score(int k, score_t gap_open, score_t gap_extend)
 {
@@ -38,7 +37,6 @@ int paralign_score(buffer_t* buffer,
                    const int n_refs,
                    alignment_t<score_t>** alignments)
 {
-    //const seq_t* refs = *refsp;
     // the number of the maximum parallel runs
     const int n_max_par = 16 / sizeof(score_t);
     if (n_refs == 0)
@@ -76,7 +74,6 @@ int paralign_score(buffer_t* buffer,
     const __m128i Gextd = _mm_set1_epi16(gap_extend);
 
     // outer loop along refs
-    size_t j = 0;
     while (true) {
         // find finished reference sequences
         for (int k = 0; k < n_max_par; k++) {
@@ -174,8 +171,6 @@ int paralign_score(buffer_t* buffer,
                 continue;
             slot.pos++;
         }
-
-        j++;
     }
 
     return 0;
