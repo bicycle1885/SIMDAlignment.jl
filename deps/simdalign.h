@@ -3,7 +3,7 @@
 
 #include "stdlib.h"
 #include "stdint.h"
-#include "emmintrin.h"
+#include "simd.h"
 
 typedef int16_t score_t;
 

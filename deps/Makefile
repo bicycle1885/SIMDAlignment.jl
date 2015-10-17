@@ -16,7 +16,7 @@ clean:
 libsimdalign.so: simdalign.o paralign.o
 	$(CXX) -dynamiclib $(CXXFLAGS) $^ -o $@
 
-simdalign.o: simdalign.cpp simdalign.h
+simdalign.o: simdalign.cpp simdalign.h simd.h
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 paralign.o: paralign.cpp simdalign.h

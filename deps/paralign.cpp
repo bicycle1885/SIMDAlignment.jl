@@ -1,9 +1,7 @@
 // parallel inter-sequence alignment
 
-#include <string>
 #include <limits>
 #include <array>
-#include <type_traits>
 #include "simdalign.h"
 
 struct slot_t
@@ -40,7 +38,7 @@ static bool is_vacant(const std::array<slot_t,8> slots)
 static void fill_profile(const seq_t* refs, const std::array<slot_t,8>& slots, const submat_t<score_t> submat, __m128i* profile)
 {
     for (uint8_t seq_char = 0; seq_char < submat.size; seq_char++) {
-        score_t svec[8];
+        std::array<score_t,8> svec;
         for (int k = 0; k < 8; k++) {
             slot_t slot = slots[k];
             if (slot == empty_slot)
@@ -48,66 +46,18 @@ static void fill_profile(const seq_t* refs, const std::array<slot_t,8>& slots, c
             uint8_t ref_char = refs[slot.id][slot.pos];
             svec[k] = submat.data[ref_char * submat.size + seq_char];
         }
-        profile[seq_char] = _mm_set_epi16(
-            svec[7], svec[6], svec[5], svec[4],
-            svec[3], svec[2], svec[1], svec[0]
-        );
+        profile[seq_char] = simd_set(svec);
     }
 }
 
 static __m128i initH(const std::array<slot_t,8>& slots, const score_t gap_open, const score_t gap_extend)
 {
-    score_t svec[8];
+    std::array<score_t,8> svec;
     for (int k = 0; k < 8; k++)
         svec[k] = affine_gap_score(slots[k].pos, gap_open, gap_extend);
-    return _mm_set_epi16(
-        svec[7], svec[6], svec[5], svec[4],
-        svec[3], svec[2], svec[1], svec[0]
-    );
+    return simd_set(svec);
 }
 
-template<typename T>
-inline __m128i simd_set1(const T x)
-{
-    if (std::is_same<T,int16_t>::value)
-        return _mm_set1_epi16(x);
-}
-
-template<typename T>
-inline __m128i simd_max(const __m128i x, const __m128i y)
-{
-    if (std::is_same<T,int16_t>::value)
-        return _mm_max_epi16(x, y);
-    // TODO: make this error
-}
-
-template<typename T>
-inline __m128i simd_adds(const __m128i x, const __m128i y)
-{
-    if (std::is_same<T,int16_t>::value)
-        return _mm_adds_epi16(x, y);
-}
-
-template<typename T>
-inline __m128i simd_subs(const __m128i x, const __m128i y)
-{
-    if (std::is_same<T,int16_t>::value)
-        return _mm_subs_epi16(x, y);
-}
-
-template<typename T>
-inline int simd_extract(const __m128i x, const int m)
-{
-    if (std::is_same<T,int16_t>::value)
-        return _mm_extract_epi16(x, m);
-}
-
-template<typename T>
-inline __m128i simd_insert(const __m128i x, const T y, const int m)
-{
-    if (std::is_same<T,int16_t>::value)
-        return _mm_insert_epi16(x, y, m);
-}
 
 //template<typename T>
 int paralign_score(buffer_t* buffer,
