@@ -2,6 +2,7 @@
 
 #include <string>
 #include <limits>
+#include <array>
 #include "simdalign.h"
 
 struct slot_t
@@ -27,19 +28,19 @@ static inline score_t affine_gap_score(int k, score_t gap_open, score_t gap_exte
     return k > 0 ? -(gap_open + gap_extend * k) : 0;
 }
 
-static bool is_empty(const slot_t* slots, const int n)
+static bool is_vacant(const std::array<slot_t,8> slots)
 {
-    for (int k = 0; k < n; k++)
-        if (slots[k] != empty_slot)
+    for (const slot_t& slot : slots)
+        if (slot != empty_slot)
             return false;
     return true;
 }
 
-static void fill_profile(const seq_t* refs, const slot_t* slots, const int n, const submat_t<score_t> submat, __m128i* profile)
+static void fill_profile(const seq_t* refs, const std::array<slot_t,8>& slots, const submat_t<score_t> submat, __m128i* profile)
 {
     for (uint8_t seq_char = 0; seq_char < submat.size; seq_char++) {
-        score_t svec[n];
-        for (int k = 0; k < n; k++) {
+        score_t svec[8];
+        for (int k = 0; k < 8; k++) {
             slot_t slot = slots[k];
             if (slot == empty_slot)
                 continue;
@@ -53,11 +54,10 @@ static void fill_profile(const seq_t* refs, const slot_t* slots, const int n, co
     }
 }
 
-static __m128i initH(const slot_t* slots, const int n, const score_t gap_open, const score_t gap_extend)
+static __m128i initH(const std::array<slot_t,8>& slots, const score_t gap_open, const score_t gap_extend)
 {
-    score_t svec[n];
-    for (int k = 0; k < n; k++)
-        // ignore empty slots
+    score_t svec[8];
+    for (int k = 0; k < 8; k++)
         svec[k] = affine_gap_score(slots[k].pos, gap_open, gap_extend);
     return _mm_set_epi16(
         svec[7], svec[6], svec[5], svec[4],
@@ -91,7 +91,7 @@ int paralign_score(buffer_t* buffer,
     __m128i* prof = colH + seq.len;
 
     // initialize slots which hold the reference sequences
-    slot_t slots[n_max_par];
+    std::array<slot_t,n_max_par> slots;
     for (int k = 0; k < n_max_par; k++) {
         if (k < n_refs)
             slots[k] = slot_t(k, 0);
@@ -116,9 +116,8 @@ int paralign_score(buffer_t* buffer,
         // find finished reference sequences
         for (int k = 0; k < n_max_par; k++) {
             slot_t &slot = slots[k];
-            if (slot == empty_slot || slot.pos < refs[slot.id].len) {
+            if (slot == empty_slot || slot.pos < refs[slot.id].len)
                 continue;
-            }
             // store the alignment result
             (*alignments[slot.id]).score = _mm_extract_epi16(colH[seq.len-1], k);
             if (next_ref >= n_refs) {
@@ -138,16 +137,16 @@ int paralign_score(buffer_t* buffer,
         }
 
         // check if there are remaining slots
-        if (is_empty(slots, n_max_par))
+        if (is_vacant(slots))
             break;
 
         // fill the temporary profile
-        fill_profile(refs, slots, n_max_par, submat, prof);
+        fill_profile(refs, slots, submat, prof);
 
         // initialize vectors
         __m128i E = colE[0];
         __m128i F = _mm_set1_epi16(minscore);
-        __m128i H_diag = initH(slots, n_max_par, gap_open, gap_extend);
+        __m128i H_diag = initH(slots, gap_open, gap_extend);
 
         // inner loop along seq
         // TODO: detect saturation
@@ -170,12 +169,9 @@ int paralign_score(buffer_t* buffer,
         }
 
         // increment the positions of the reference sequences
-        for (int k= 0; k < n_max_par; k++) {
-            slot_t &slot = slots[k];
-            if (slot == empty_slot)
-                continue;
-            slot.pos++;
-        }
+        for (slot_t& slot : slots)
+            if (slot != empty_slot)
+                slot.pos++;
     }
 
     return 0;
