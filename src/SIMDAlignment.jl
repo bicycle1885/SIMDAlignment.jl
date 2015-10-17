@@ -10,12 +10,8 @@ export
 
 using Bio.Seq
 
-const libsimdalign = Pkg.dir("SIMDAlignment", "deps", "libsimdalign.so")
-
-
 # 1-byte alphabets
 typealias Byte Union{Int8,UInt8,DNANucleotide,RNANucleotide,AminoAcid}
-
 
 # sequence
 immutable seq_t
@@ -35,7 +31,6 @@ function Base.convert{T}(::Type{seq_t}, seq::NucleotideSequence{T})
     return seq_t(byteseq)
 end
 
-
 # substitution matrix
 immutable submat_t{T}
     data::Ptr{T}
@@ -47,7 +42,6 @@ function Base.convert{T}(::Type{submat_t}, submat::Matrix{T})
     @assert m == n
     return submat_t{T}(pointer(submat), convert(Cint, n))
 end
-
 
 # alignment result
 type alignment_t{T}
@@ -62,8 +56,8 @@ type alignment_t{T}
     end
 end
 
-typealias score_t Int16
 
+const libsimdalign = Pkg.dir("SIMDAlignment", "deps", "libsimdalign.so")
 
 function make_buffer()
     buffer = ccall((:make_buffer, libsimdalign), Ptr{Void}, ())
@@ -75,21 +69,26 @@ function free_buffer(buffer)
     ccall((:free_buffer, libsimdalign), Void, (Ptr{Void},), buffer)
 end
 
-function paralign_score(submat, gap_open, gap_extend, seq, refs)
-    alns = Vector{alignment_t{score_t}}()
-    for _ in 1:length(refs)
-        push!(alns, alignment_t{score_t}())
+@generated function paralign_score{score_t}(submat::Matrix{score_t}, gap_open, gap_extend, seq, refs)
+    func = score_t === Int8  ? :(:paralign_score_i8)  :
+           score_t === Int16 ? :(:paralign_score_i16) :
+           error("not supported type: $score_t")
+    quote
+        alns = Vector{alignment_t{score_t}}()
+        for _ in 1:length(refs)
+            push!(alns, alignment_t{score_t}())
+        end
+        buffer = make_buffer()
+        ret = ccall(
+            ($(func), libsimdalign),
+            Cint,
+            (Ptr{Void}, submat_t{score_t}, score_t, score_t, seq_t, Ptr{seq_t}, Cint, Ptr{Void}),
+            buffer, submat_t(submat), gap_open, gap_extend, seq_t(seq), pointer(refs), length(refs), alns
+        )
+        free_buffer(buffer)
+        @assert ret == 0 "failed to align"
+        return alns
     end
-    buffer = make_buffer()
-    ret = ccall(
-        (:paralign_score_i16, libsimdalign),
-        Cint,
-        (Ptr{Void}, submat_t{score_t}, score_t, score_t, seq_t, Ptr{seq_t}, Cint, Ptr{Void}),
-        buffer, submat_t(submat), gap_open, gap_extend, seq_t(seq), pointer(refs), length(refs), alns
-    )
-    free_buffer(buffer)
-    @assert ret == 0 "failed to align"
-    return alns
 end
 
 end # module
