@@ -38,7 +38,10 @@ static bool is_vacant(const std::array<slot_t,n> slots)
 }
 
 template<typename score_t,size_t n>
-static void fill_profile(const seq_t* refs, const std::array<slot_t,n>& slots, const submat_t<score_t> submat, __m128i* profile)
+static void fill_profile(const seq_t* refs,
+                         const std::array<slot_t,n>& slots,
+                         const submat_t<score_t> submat,
+                         __m128i* profile)
 {
     for (uint8_t seq_char = 0; seq_char < submat.size; seq_char++) {
         std::array<score_t,n> svec;
@@ -54,12 +57,40 @@ static void fill_profile(const seq_t* refs, const std::array<slot_t,n>& slots, c
 }
 
 template<typename score_t,size_t n>
-static __m128i initH(const std::array<slot_t,n>& slots, const score_t gap_open, const score_t gap_extend)
+static void loop(const seq_t& seq,
+                 const __m128i* prof,
+                 const std::array<slot_t,n>& slots,
+                 const score_t gap_open,
+                 const score_t gap_extend,
+                 __m128i* colE,
+                 __m128i* colH)
 {
-    std::array<score_t,n> svec;
+    const __m128i Ginit = simd_set1<score_t>(gap_open + gap_extend);
+    const __m128i Gextd = simd_set1<score_t>(gap_extend);
+    std::array<score_t,n> vec;
     for (int k = 0; k < n; k++)
-        svec[k] = affine_gap_score(slots[k].pos, gap_open, gap_extend);
-    return simd_set(svec);
+        vec[k] = affine_gap_score(slots[k].pos + 1, gap_open, gap_extend);
+    __m128i F = simd_sub<score_t>(simd_set(vec), Ginit);
+    for (int k = 0; k < n; k++)
+        vec[k] = affine_gap_score(slots[k].pos, gap_open, gap_extend);
+    __m128i H_diag = simd_set(vec);
+    for (size_t i = 0; i < seq.len; i++) {
+        __m128i E = colE[i];
+        __m128i H = simd_max<score_t>(
+            simd_add<score_t>(H_diag, prof[seq[i]]),
+            simd_max<score_t>(E, F)
+        );
+        H_diag = colH[i];
+        colH[i] = H;
+        colE[i] = simd_max<score_t>(
+            simd_sub<score_t>(H, Ginit),
+            simd_sub<score_t>(E, Gextd)
+        );
+        F = simd_max<score_t>(
+            simd_sub<score_t>(H, Ginit),
+            simd_sub<score_t>(F, Gextd)
+        );
+    }
 }
 
 
@@ -73,8 +104,6 @@ int paralign_score(buffer_t* buffer,
                    const int n_refs,
                    alignment_t<score_t>** alignments)
 {
-    // the number of the maximum parallel runs
-    const int n_max_par = 16 / sizeof(score_t);
     if (n_refs == 0)
         return 0;
     else if (n_refs < 0)
@@ -89,21 +118,19 @@ int paralign_score(buffer_t* buffer,
     __m128i* prof = colH + seq.len;
 
     // initialize slots which hold the reference sequences
+    const int n_max_par = sizeof(__m128i) / sizeof(score_t);
     std::array<slot_t,n_max_par> slots;
     for (int k = 0; k < n_max_par; k++)
         slots[k] = k < n_refs ? slot_t(k, 0) : empty_slot;
     int next_ref = std::min(n_refs, n_max_par);
 
     // initialize colE and colH
-    const score_t minscore = std::numeric_limits<score_t>::min();
+    const score_t gap_init = gap_open + gap_extend;
+    const __m128i Ginit = simd_set1<score_t>(gap_init);
     for (int i = 0; i < seq.len; i++) {
-        colE[i] = simd_set1(minscore);
         colH[i] = simd_set1(affine_gap_score(i + 1, gap_open, gap_extend));
+        colE[i] = simd_sub<score_t>(colH[i], Ginit);
     }
-
-    // set gap penalty vectors
-    const __m128i Ginit = simd_set1<score_t>(gap_open + gap_extend);
-    const __m128i Gextd = simd_set1(gap_extend);
 
     // outer loop along refs
     while (true) {
@@ -125,8 +152,9 @@ int paralign_score(buffer_t* buffer,
             slot.pos = 0;
             // reset E and H
             for (int i = 0; i < seq.len; i++) {
-                colE[i] = simd_insert(colE[i], minscore, k);
-                colH[i] = simd_insert(colH[i], affine_gap_score(i + 1, gap_open, gap_extend), k);
+                score_t h = affine_gap_score(i + 1, gap_open, gap_extend);
+                colH[i] = simd_insert(colH[i], h, k);
+                colE[i] = simd_insert(colE[i], static_cast<score_t>(h - gap_init), k);
             }
         }
 
@@ -137,30 +165,9 @@ int paralign_score(buffer_t* buffer,
         // fill the temporary profile
         fill_profile(refs, slots, submat, prof);
 
-        // initialize vectors
-        __m128i E = colE[0];
-        __m128i F = simd_set1(minscore);
-        __m128i H_diag = initH(slots, gap_open, gap_extend);
-
         // inner loop along seq
         // TODO: detect saturation
-        for (size_t i = 0; i < seq.len; i++) {
-            E = colE[i];
-            __m128i H = simd_max<score_t>(
-                simd_adds<score_t>(H_diag, prof[seq[i]]),
-                simd_max<score_t>(E, F)
-            );
-            H_diag = colH[i];
-            colH[i] = H;
-            colE[i] = simd_max<score_t>(
-                simd_subs<score_t>(H, Ginit),
-                simd_subs<score_t>(E, Gextd)
-            );
-            F = simd_max<score_t>(
-                simd_subs<score_t>(H, Ginit),
-                simd_subs<score_t>(F, Gextd)
-            );
-        }
+        loop<score_t,n_max_par>(seq, prof, slots, gap_open, gap_extend, colE, colH);
 
         // increment the positions of the reference sequences
         for (slot_t& slot : slots)
@@ -191,6 +198,18 @@ int paralign_score_i16(buffer_t* buffer,
                        const seq_t* refs,
                        const int n_refs,
                        alignment_t<int16_t>** alignments)
+{
+    return paralign_score(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
+}
+
+int paralign_score_i32(buffer_t* buffer,
+                       const submat_t<int32_t> submat,
+                       const int32_t gap_open,
+                       const int32_t gap_extend,
+                       const seq_t seq,
+                       const seq_t* refs,
+                       const int n_refs,
+                       alignment_t<int32_t>** alignments)
 {
     return paralign_score(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }

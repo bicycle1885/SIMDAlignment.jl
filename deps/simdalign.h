@@ -14,6 +14,7 @@ struct seq_t
     // whether the seqnece is packed, used for DNA/RNA sequence
     bool packed;
 
+    // NOTE: 0-based index unlike Julia
     uint8_t operator[](const int i) const {
         return data[i];
     };
@@ -88,6 +89,14 @@ extern "C"
                            const seq_t* refs,
                            const int n_refs,
                            alignment_t<int16_t>** alignments);
+    int paralign_score_i32(buffer_t* buffer,
+                           const submat_t<int32_t> submat,
+                           const int32_t gap_open,
+                           const int32_t gap_extend,
+                           const seq_t seq,
+                           const seq_t* refs,
+                           const int n_refs,
+                           alignment_t<int32_t>** alignments);
 }
 
 #endif

@@ -3,9 +3,9 @@ using Bio.Seq
 using Bio.Align
 using Base.Test
 
-for score_t in (Int8, Int16)
+for score_t in (Int8, Int16, Int32)
     submat = Matrix{score_t}(4, 4)
-    fill!(submat, -1)
+    fill!(submat, -6)
     submat[diagind(submat)] = 0
     gap_open = 5
     gap_extend = 3
@@ -26,6 +26,8 @@ for score_t in (Int8, Int16)
     refs = [
         dna"ACGT",
         dna"ACGG",
+        dna"AACGT",
+        dna"ACGTT",
         dna"ACATG",
         dna"AACGT",
         dna"AACGTG",
@@ -35,6 +37,7 @@ for score_t in (Int8, Int16)
         dna"ACT",
         dna"AGT",
         dna"AGG",
+        dna"CGT",
         dna"CCT",
         dna"CT",
         dna"C",
