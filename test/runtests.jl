@@ -3,7 +3,7 @@ using Bio.Seq
 using Bio.Align
 using Base.Test
 
-for score_t in (Int8, Int16, Int32)
+function test_same_seqs{score_t}(::Type{score_t})
     submat = Matrix{score_t}(4, 4)
     fill!(submat, -6)
     submat[diagind(submat)] = 0
@@ -21,7 +21,9 @@ for score_t in (Int8, Int16, Int32)
             @test aln.score == 0
         end
     end
+end
 
+function test_various_seqs{score_t}(::Type{score_t})
     seq = dna"ACGT"
     refs = [
         dna"ACGT",
@@ -45,15 +47,24 @@ for score_t in (Int8, Int16, Int32)
         dna"AACCTGA"[2:6],
     ]
 
-    affinegap = AffineGapScoreModel(submat, gap_open_penalty=gap_open, gap_extend_penalty=gap_extend)
+    submat = Matrix{score_t}(4, 4)
+    fill!(submat, -6)
+    submat[diagind(submat)] = 0
+    model = AffineGapScoreModel(submat, gap_open_penalty=5, gap_extend_penalty=3)
 
     refs′ = [convert(seq_t, ref) for ref in refs]
-    alns = paralign_score(submat, gap_open, gap_extend, seq, refs′)
+    alns = paralign_score(submat, model.gap_open_penalty, model.gap_extend_penalty, seq, refs′)
 
     for i in 1:length(refs)
         ref = refs[i]
         aln = alns[i]
-        aln′ = pairalign(GlobalAlignment(), seq, ref, affinegap)
+        aln′ = pairalign(GlobalAlignment(), seq, ref, model)
         @test aln.score == aln′.score
     end
+end
+
+# run tests
+for score_t in (Int8, Int16, Int32)
+    test_same_seqs(score_t)
+    test_various_seqs(score_t)
 end
