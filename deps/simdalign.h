@@ -9,14 +9,21 @@
 struct seq_t
 {
     uint8_t* data;
-    size_t startpos;
     size_t len;
+    size_t offset;
     // whether the seqnece is packed, used for DNA/RNA sequence
     bool packed;
 
     // NOTE: 0-based index unlike Julia
-    uint8_t operator[](const int i) const {
-        return data[i];
+    inline uint8_t operator[](const size_t i) const {
+        size_t j = i + offset;
+        if (packed) {
+            size_t q = j >> 2, r = j & 0b11;
+            return (data[q] >> (r * 2)) & 0b11;
+        }
+        else {
+            return data[j];
+        }
     };
 };
 

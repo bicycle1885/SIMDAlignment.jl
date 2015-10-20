@@ -41,6 +41,8 @@ for score_t in (Int8, Int16, Int32)
         dna"CCT",
         dna"CT",
         dna"C",
+        dna"AACCTGA"[2:5],
+        dna"AACCTGA"[2:6],
     ]
 
     affinegap = AffineGapScoreModel(submat, gap_open_penalty=gap_open, gap_extend_penalty=gap_extend)

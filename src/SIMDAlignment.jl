@@ -16,19 +16,18 @@ typealias Byte Union{Int8,UInt8,DNANucleotide,RNANucleotide,AminoAcid}
 # sequence
 immutable seq_t
     data::Ptr{UInt8}
-    startpos::Csize_t
     len::Csize_t
+    offset::Csize_t
     packed::Bool
 end
 
 function Base.convert{T<:Byte}(::Type{seq_t}, seq::Vector{T})
-    return seq_t(pointer(seq), 1, length(seq), false)
+    return seq_t(pointer(seq), length(seq), 0, false)
 end
 
 function Base.convert{T}(::Type{seq_t}, seq::NucleotideSequence{T})
-    # TODO: optimize
-    byteseq = convert(Vector{T}, seq)
-    return seq_t(byteseq)
+    byteseq = reinterpret(UInt8, seq.data)
+    return seq_t(pointer(byteseq), length(seq), seq.part.start - 1, true)
 end
 
 # substitution matrix
