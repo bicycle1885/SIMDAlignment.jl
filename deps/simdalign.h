@@ -9,14 +9,18 @@
 struct seq_t
 {
     uint8_t* data;
+    // sequence length
     size_t len;
+    // the first position accessed by seq[0]
     size_t offset;
+    // data is organized in reversed order
+    bool reversed;
     // whether the seqnece is packed, used for DNA/RNA sequence
     bool packed;
 
     // NOTE: 0-based index unlike Julia
     inline uint8_t operator[](const size_t i) const {
-        size_t j = i + offset;
+        size_t j = offset + (reversed ? -i : i);
         if (packed) {
             size_t q = j >> 2, r = j & 0b11;
             return (data[q] >> (r * 2)) & 0b11;

@@ -18,16 +18,27 @@ immutable seq_t
     data::Ptr{UInt8}
     len::Csize_t
     offset::Csize_t
+    reversed::Bool
     packed::Bool
 end
 
 function Base.convert{T<:Byte}(::Type{seq_t}, seq::Vector{T})
-    return seq_t(pointer(seq), length(seq), 0, false)
+    return seq_t(pointer(seq), length(seq), 0, false, false)
 end
 
-function Base.convert{T}(::Type{seq_t}, seq::NucleotideSequence{T})
+function Base.call(::Type{seq_t}, seq::Vector, offset::Int=0, reversed::Bool=false)
+    return seq_t(pointer(seq), length(seq), offset, reversed, false)
+end
+
+function Base.convert(::Type{seq_t}, seq::NucleotideSequence)
     byteseq = reinterpret(UInt8, seq.data)
-    return seq_t(pointer(byteseq), length(seq), seq.part.start - 1, true)
+    return seq_t(pointer(byteseq), length(seq), seq.part.start - 1, false, true)
+end
+
+function Base.call{T}(::Type{seq_t}, seq::NucleotideSequence{T}, reversed::Bool=false)
+    byteseq = reinterpret(UInt8, seq.data)
+    offset = (reversed ? seq.part.stop : seq.part.start) - 1
+    return seq_t(pointer(byteseq), length(seq), offset, reversed, true)
 end
 
 # substitution matrix

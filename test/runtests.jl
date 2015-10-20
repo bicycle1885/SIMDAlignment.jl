@@ -3,10 +3,15 @@ using Bio.Seq
 using Bio.Align
 using Base.Test
 
-function test_same_seqs{score_t}(::Type{score_t})
+function make_submat{score_t}(::Type{score_t})
     submat = Matrix{score_t}(4, 4)
     fill!(submat, -6)
     submat[diagind(submat)] = 0
+    return submat
+end
+
+function test_same_seqs{score_t}(::Type{score_t})
+    submat = make_submat(score_t)
     gap_open = 5
     gap_extend = 3
 
@@ -47,9 +52,7 @@ function test_various_seqs{score_t}(::Type{score_t})
         dna"AACCTGA"[2:6],
     ]
 
-    submat = Matrix{score_t}(4, 4)
-    fill!(submat, -6)
-    submat[diagind(submat)] = 0
+    submat = make_submat(score_t)
     model = AffineGapScoreModel(submat, gap_open_penalty=5, gap_extend_penalty=3)
 
     refs′ = [convert(seq_t, ref) for ref in refs]
@@ -57,6 +60,27 @@ function test_various_seqs{score_t}(::Type{score_t})
 
     for i in 1:length(refs)
         ref = refs[i]
+        aln = alns[i]
+        aln′ = pairalign(GlobalAlignment(), seq, ref, model)
+        @test aln.score == aln′.score
+    end
+end
+
+function test_reversed_seqs{score_t}(::Type{score_t})
+    seq = dna"ACGTAT"
+    refs = [
+        dna"TATGCA",
+        dna"ACGTAT",
+        dna"ATTGA",
+    ]
+
+    submat = make_submat(score_t)
+    model = AffineGapScoreModel(submat, gap_open_penalty=5, gap_extend_penalty=3)
+    refs′ = [seq_t(ref, true) for ref in refs]
+    alns = paralign_score(submat, model.gap_open_penalty, model.gap_extend_penalty, seq, refs′)
+
+    for i in 1:length(refs)
+        ref = reverse(refs[i])
         aln = alns[i]
         aln′ = pairalign(GlobalAlignment(), seq, ref, model)
         @test aln.score == aln′.score
