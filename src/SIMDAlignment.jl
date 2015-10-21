@@ -9,6 +9,7 @@ export
     paralign_score
 
 using Bio.Seq
+using Bio.Align
 
 # 1-byte alphabets
 typealias Byte Union{Int8,UInt8,DNANucleotide,RNANucleotide,AminoAcid}
@@ -53,6 +54,10 @@ function Base.convert{T}(::Type{submat_t}, submat::Matrix{T})
     return submat_t{T}(pointer(submat), convert(Cint, n))
 end
 
+function Base.convert{T}(::Type{submat_t}, submat::SubstitutionMatrix{T})
+    return submat_t(submat.submat)
+end
+
 # alignment result
 type alignment_t{T}
     score::T
@@ -83,7 +88,7 @@ function free_buffer(buffer)
     ccall((:free_buffer, libsimdalign), Void, (Ptr{Void},), buffer)
 end
 
-@generated function paralign_score{score_t}(submat::Matrix{score_t}, gap_open, gap_extend, seq, refs)
+@generated function paralign_score{score_t}(submat::Union{Matrix{score_t},SubstitutionMatrix{score_t}}, gap_open, gap_extend, seq, refs)
     func = score_t === Int8  ? :(:paralign_score_i8)  :
            score_t === Int16 ? :(:paralign_score_i16) :
            score_t === Int32 ? :(:paralign_score_i32) :
