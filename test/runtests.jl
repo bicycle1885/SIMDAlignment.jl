@@ -28,6 +28,26 @@ function test_same_seqs{score_t}(::Type{score_t})
     end
 end
 
+function test_empty_seq{score_t}(::Type{score_t})
+    seq = dna""
+    refs = [
+        dna"A",
+        dna"AC",
+        dna""
+    ]
+    submat = make_submat(score_t)
+    model = AffineGapScoreModel(submat, gap_open_penalty=5, gap_extend_penalty=3)
+
+    refs′ = [convert(seq_t, ref) for ref in refs]
+    alns = paralign_score(submat, model.gap_open_penalty, model.gap_extend_penalty, seq, refs′)
+    for i in 1:length(refs)
+        ref = refs[i]
+        aln = alns[i]
+        aln′ = pairalign(GlobalAlignment(), seq, ref, model)
+        @test aln.score == aln′.score
+    end
+end
+
 function test_various_seqs{score_t}(::Type{score_t})
     seq = dna"ACGT"
     refs = [
@@ -48,6 +68,7 @@ function test_various_seqs{score_t}(::Type{score_t})
         dna"CCT",
         dna"CT",
         dna"C",
+        dna"",
         dna"AACCTGA"[2:5],
         dna"AACCTGA"[2:6],
     ]
@@ -72,6 +93,7 @@ function test_reversed_seqs{score_t}(::Type{score_t})
         dna"TATGCA",
         dna"ACGTAT",
         dna"ATTGA",
+        dna"",
     ]
 
     submat = make_submat(score_t)
@@ -90,5 +112,6 @@ end
 # run tests
 for score_t in (Int8, Int16, Int32)
     test_same_seqs(score_t)
+    test_empty_seq(score_t)
     test_various_seqs(score_t)
 end
