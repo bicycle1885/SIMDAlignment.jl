@@ -58,7 +58,8 @@ static void fill_profile(const seq_t* refs,
 
 // update the next column
 template<typename vec_t,typename score_t,size_t n>
-static void loop(const seq_t& seq,
+static void loop(const uint8_t* useq,
+                 const size_t seqlen,
                  const vec_t* prof,
                  const std::array<slot_t,n>& slots,
                  const score_t gap_open,
@@ -74,10 +75,10 @@ static void loop(const seq_t& seq,
         vec[k] = affine_gap_score(slots[k].pos + 1, gap_open, gap_extend);
     vec_t F = simd_sub<score_t>(simd_set<score_t,n,vec_t>(vec), Ginit);
     colH[0] = simd_set<score_t,n,vec_t>(vec);
-    for (size_t i = 1; i <= seq.len; i++) {
+    for (size_t i = 1; i <= seqlen; i++) {
         vec_t E = colE[i];
         vec_t H = simd_max<score_t>(
-            simd_add<score_t>(H_diag, prof[seq[i-1]]),
+            simd_add<score_t>(H_diag, prof[useq[i-1]]),
             simd_max<score_t>(E, F)
         );
         H_diag = colH[i];
@@ -111,12 +112,19 @@ int paralign_score(buffer_t* buffer,
 
     // allocate working space
     if (expand_buffer(buffer, sizeof(vec_t) * (seq.len + 1) * 2 +
-                              sizeof(vec_t) * submat.size))
+                              sizeof(vec_t) * submat.size +
+                              sizeof(uint8_t) * seq.len)) {
         return 1;
+    }
     // NOTE: colE[0] is not used
     vec_t* colE = (vec_t*)buffer->data;
     vec_t* colH = colE + seq.len + 1;
     vec_t* prof = colH + seq.len + 1;
+    uint8_t* useq = reinterpret_cast<uint8_t*>(prof + submat.size);
+
+    // unpack sequence
+    for (size_t i = 0; i < seq.len; i++)
+        useq[i] = seq[i];
 
     // initialize slots which hold the reference sequences
     const int n_max_par = sizeof(vec_t) / sizeof(score_t);
@@ -172,7 +180,7 @@ int paralign_score(buffer_t* buffer,
 
         // inner loop along seq
         // TODO: detect saturation
-        loop(seq, prof, slots, gap_open, gap_extend, colE, colH);
+        loop(useq, seq.len, prof, slots, gap_open, gap_extend, colE, colH);
     }
 
     return 0;
