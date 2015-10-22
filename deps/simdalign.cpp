@@ -1,10 +1,10 @@
 #include "simdalign.h"
 
 // 16-byte-aligned memory allocation (copied from Julia src/gc.c)
-static void *malloc_a16(size_t sz)
+static void *malloc_a32(size_t sz)
 {
     void *ptr;
-    if (posix_memalign(&ptr, 16, sz))
+    if (posix_memalign(&ptr, 32, sz))
         return NULL;
     return ptr;
 }
@@ -21,7 +21,7 @@ int expand_buffer(buffer_t* buffer, size_t sz)
 {
     if (buffer->len >= sz)
         return 0;
-    void* buf = malloc_a16(sz);
+    void* buf = malloc_a32(sz);
     if (buf == NULL)
         return 1;
     free(buffer->data);

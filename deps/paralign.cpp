@@ -37,11 +37,11 @@ static bool is_vacant(const std::array<slot_t,n> slots)
     return true;
 }
 
-template<typename score_t,size_t n>
+template<typename vec_t,typename score_t,size_t n>
 static void fill_profile(const seq_t* refs,
                          const std::array<slot_t,n>& slots,
                          const submat_t<score_t> submat,
-                         __m128i* profile)
+                         vec_t* profile)
 {
     for (uint8_t seq_char = 0; seq_char < submat.size; seq_char++) {
         std::array<score_t,n> svec;
@@ -52,31 +52,31 @@ static void fill_profile(const seq_t* refs,
             uint8_t ref_char = refs[slot.id][slot.pos];
             svec[k] = submat.data[ref_char * submat.size + seq_char];
         }
-        profile[seq_char] = simd_set(svec);
+        profile[seq_char] = simd_set<score_t,n,vec_t>(svec);
     }
 }
 
 // update the next column
-template<typename score_t,size_t n>
+template<typename vec_t,typename score_t,size_t n>
 static void loop(const seq_t& seq,
-                 const __m128i* prof,
+                 const vec_t* prof,
                  const std::array<slot_t,n>& slots,
                  const score_t gap_open,
                  const score_t gap_extend,
-                 __m128i* colE,
-                 __m128i* colH)
+                 vec_t* colE,
+                 vec_t* colH)
 {
-    const __m128i Ginit = simd_set1<score_t>(gap_open + gap_extend);
-    const __m128i Gextd = simd_set1<score_t>(gap_extend);
-    __m128i H_diag = colH[0];
+    const vec_t Ginit = simd_set1<score_t,vec_t>(gap_open + gap_extend);
+    const vec_t Gextd = simd_set1<score_t,vec_t>(gap_extend);
+    vec_t H_diag = colH[0];
     std::array<score_t,n> vec;
     for (int k = 0; k < n; k++)
         vec[k] = affine_gap_score(slots[k].pos + 1, gap_open, gap_extend);
-    __m128i F = simd_sub<score_t>(simd_set(vec), Ginit);
-    colH[0] = simd_set(vec);
+    vec_t F = simd_sub<score_t>(simd_set<score_t,n,vec_t>(vec), Ginit);
+    colH[0] = simd_set<score_t,n,vec_t>(vec);
     for (size_t i = 1; i <= seq.len; i++) {
-        __m128i E = colE[i];
-        __m128i H = simd_max<score_t>(
+        vec_t E = colE[i];
+        vec_t H = simd_max<score_t>(
             simd_add<score_t>(H_diag, prof[seq[i-1]]),
             simd_max<score_t>(E, F)
         );
@@ -94,7 +94,7 @@ static void loop(const seq_t& seq,
 }
 
 
-template<typename score_t>
+template<typename vec_t,typename score_t>
 int paralign_score(buffer_t* buffer,
                    const submat_t<score_t> submat,
                    const score_t gap_open,
@@ -110,16 +110,16 @@ int paralign_score(buffer_t* buffer,
         return 1;
 
     // allocate working space
-    if (expand_buffer(buffer, sizeof(__m128i) * (seq.len + 1) * 2 +
-                              sizeof(__m128i) * submat.size))
+    if (expand_buffer(buffer, sizeof(vec_t) * (seq.len + 1) * 2 +
+                              sizeof(vec_t) * submat.size))
         return 1;
     // NOTE: colE[0] is not used
-    __m128i* colE = (__m128i*)buffer->data;
-    __m128i* colH = colE + seq.len + 1;
-    __m128i* prof = colH + seq.len + 1;
+    vec_t* colE = (vec_t*)buffer->data;
+    vec_t* colH = colE + seq.len + 1;
+    vec_t* prof = colH + seq.len + 1;
 
     // initialize slots which hold the reference sequences
-    const int n_max_par = sizeof(__m128i) / sizeof(score_t);
+    const int n_max_par = sizeof(vec_t) / sizeof(score_t);
     std::array<slot_t,n_max_par> slots;
     slots.fill(empty_slot);
     int next_ref = 0;
@@ -172,44 +172,85 @@ int paralign_score(buffer_t* buffer,
 
         // inner loop along seq
         // TODO: detect saturation
-        loop<score_t,n_max_par>(seq, prof, slots, gap_open, gap_extend, colE, colH);
+        loop(seq, prof, slots, gap_open, gap_extend, colE, colH);
     }
 
     return 0;
 }
 
-int paralign_score_i8(buffer_t* buffer,
-                      const submat_t<int8_t> submat,
-                      const int8_t gap_open,
-                      const int8_t gap_extend,
-                      const seq_t seq,
-                      const seq_t* refs,
-                      const int n_refs,
-                      alignment_t<int8_t>** alignments)
+
+// 128 bits
+int paralign_score_i8x16(buffer_t* buffer,
+                         const submat_t<int8_t> submat,
+                         const int8_t gap_open,
+                         const int8_t gap_extend,
+                         const seq_t seq,
+                         const seq_t* refs,
+                         const int n_refs,
+                         alignment_t<int8_t>** alignments)
 {
-    return paralign_score(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
+    return paralign_score<__m128i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }
 
-int paralign_score_i16(buffer_t* buffer,
-                       const submat_t<int16_t> submat,
-                       const int16_t gap_open,
-                       const int16_t gap_extend,
-                       const seq_t seq,
-                       const seq_t* refs,
-                       const int n_refs,
-                       alignment_t<int16_t>** alignments)
+int paralign_score_i16x8(buffer_t* buffer,
+                         const submat_t<int16_t> submat,
+                         const int16_t gap_open,
+                         const int16_t gap_extend,
+                         const seq_t seq,
+                         const seq_t* refs,
+                         const int n_refs,
+                         alignment_t<int16_t>** alignments)
 {
-    return paralign_score(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
+    return paralign_score<__m128i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }
 
-int paralign_score_i32(buffer_t* buffer,
-                       const submat_t<int32_t> submat,
-                       const int32_t gap_open,
-                       const int32_t gap_extend,
-                       const seq_t seq,
-                       const seq_t* refs,
-                       const int n_refs,
-                       alignment_t<int32_t>** alignments)
+int paralign_score_i32x4(buffer_t* buffer,
+                         const submat_t<int32_t> submat,
+                         const int32_t gap_open,
+                         const int32_t gap_extend,
+                         const seq_t seq,
+                         const seq_t* refs,
+                         const int n_refs,
+                         alignment_t<int32_t>** alignments)
 {
-    return paralign_score(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
+    return paralign_score<__m128i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }
+
+
+// 256 bits
+int paralign_score_i8x32(buffer_t* buffer,
+                         const submat_t<int8_t> submat,
+                         const int8_t gap_open,
+                         const int8_t gap_extend,
+                         const seq_t seq,
+                         const seq_t* refs,
+                         const int n_refs,
+                         alignment_t<int8_t>** alignments)
+{
+    return paralign_score<__m256i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
+}
+
+int paralign_score_i16x16(buffer_t* buffer,
+                          const submat_t<int16_t> submat,
+                          const int16_t gap_open,
+                          const int16_t gap_extend,
+                          const seq_t seq,
+                          const seq_t* refs,
+                          const int n_refs,
+                          alignment_t<int16_t>** alignments)
+{
+    return paralign_score<__m256i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
+}
+
+int paralign_score_i32x8(buffer_t* buffer,
+                         const submat_t<int32_t> submat,
+                         const int32_t gap_open,
+                         const int32_t gap_extend,
+                         const seq_t seq,
+                         const seq_t* refs,
+                         const int n_refs,
+                         alignment_t<int32_t>** alignments)
+{
+    return paralign_score<__m256i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
+}
+

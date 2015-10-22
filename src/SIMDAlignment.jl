@@ -89,9 +89,9 @@ function free_buffer(buffer)
 end
 
 @generated function paralign_score{score_t}(submat::Union{Matrix{score_t},SubstitutionMatrix{score_t}}, gap_open, gap_extend, seq, refs)
-    func = score_t === Int8  ? :(:paralign_score_i8)  :
-           score_t === Int16 ? :(:paralign_score_i16) :
-           score_t === Int32 ? :(:paralign_score_i32) :
+    func = score_t === Int8  ? :(:paralign_score_i8x16)  :
+           score_t === Int16 ? :(:paralign_score_i16x16) :
+           score_t === Int32 ? :(:paralign_score_i32x8) :
            error("not supported type: $score_t")
     quote
         alns = Vector{alignment_t{score_t}}()

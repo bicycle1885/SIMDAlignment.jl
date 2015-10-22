@@ -84,30 +84,54 @@ extern "C"
     void free_buffer(buffer_t*);
 
     // paralign.cpp
-    int paralign_score_i8(buffer_t* buffer,
-                          const submat_t<int8_t> submat,
-                          const int8_t gap_open,
-                          const int8_t gap_extend,
-                          const seq_t seq,
-                          const seq_t* refs,
-                          const int n_refs,
-                          alignment_t<int8_t>** alignments);
-    int paralign_score_i16(buffer_t* buffer,
-                           const submat_t<int16_t> submat,
-                           const int16_t gap_open,
-                           const int16_t gap_extend,
-                           const seq_t seq,
-                           const seq_t* refs,
-                           const int n_refs,
-                           alignment_t<int16_t>** alignments);
-    int paralign_score_i32(buffer_t* buffer,
-                           const submat_t<int32_t> submat,
-                           const int32_t gap_open,
-                           const int32_t gap_extend,
-                           const seq_t seq,
-                           const seq_t* refs,
-                           const int n_refs,
-                           alignment_t<int32_t>** alignments);
+    int paralign_score_i8x16(buffer_t* buffer,
+                             const submat_t<int8_t> submat,
+                             const int8_t gap_open,
+                             const int8_t gap_extend,
+                             const seq_t seq,
+                             const seq_t* refs,
+                             const int n_refs,
+                             alignment_t<int8_t>** alignments);
+    int paralign_score_i16x8(buffer_t* buffer,
+                             const submat_t<int16_t> submat,
+                             const int16_t gap_open,
+                             const int16_t gap_extend,
+                             const seq_t seq,
+                             const seq_t* refs,
+                             const int n_refs,
+                             alignment_t<int16_t>** alignments);
+    int paralign_score_i32x4(buffer_t* buffer,
+                             const submat_t<int32_t> submat,
+                             const int32_t gap_open,
+                             const int32_t gap_extend,
+                             const seq_t seq,
+                             const seq_t* refs,
+                             const int n_refs,
+                             alignment_t<int32_t>** alignments);
+    int paralign_score_i8x32(buffer_t* buffer,
+                             const submat_t<int8_t> submat,
+                             const int8_t gap_open,
+                             const int8_t gap_extend,
+                             const seq_t seq,
+                             const seq_t* refs,
+                             const int n_refs,
+                             alignment_t<int8_t>** alignments);
+    int paralign_score_i16x16(buffer_t* buffer,
+                              const submat_t<int16_t> submat,
+                              const int16_t gap_open,
+                              const int16_t gap_extend,
+                              const seq_t seq,
+                              const seq_t* refs,
+                              const int n_refs,
+                              alignment_t<int16_t>** alignments);
+    int paralign_score_i32x8(buffer_t* buffer,
+                             const submat_t<int32_t> submat,
+                             const int32_t gap_open,
+                             const int32_t gap_extend,
+                             const seq_t seq,
+                             const seq_t* refs,
+                             const int n_refs,
+                             alignment_t<int32_t>** alignments);
 }
 
 #endif
