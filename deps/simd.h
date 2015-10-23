@@ -88,7 +88,7 @@ inline __m256i simd_set(const std::array<int8_t,32>& xs)
         xs[31], xs[30], xs[29], xs[28],
         xs[27], xs[26], xs[25], xs[24],
         xs[23], xs[22], xs[21], xs[20],
-        xs[19], xs[18], xs[27], xs[16],
+        xs[19], xs[18], xs[17], xs[16],
         xs[15], xs[14], xs[13], xs[12],
         xs[11], xs[10], xs[ 9], xs[ 8],
         xs[ 7], xs[ 6], xs[ 5], xs[ 4],

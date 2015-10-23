@@ -55,7 +55,7 @@ function Base.convert{T}(::Type{submat_t}, submat::Matrix{T})
 end
 
 function Base.convert{T}(::Type{submat_t}, submat::SubstitutionMatrix{T})
-    return submat_t(submat.submat)
+    return submat_t(submat.data)
 end
 
 # alignment result
@@ -88,8 +88,8 @@ function free_buffer(buffer)
     ccall((:free_buffer, libsimdalign), Void, (Ptr{Void},), buffer)
 end
 
-@generated function paralign_score{score_t}(submat::Union{Matrix{score_t},SubstitutionMatrix{score_t}}, gap_open, gap_extend, seq, refs)
-    func = score_t === Int8  ? :(:paralign_score_i8x16)  :
+@generated function paralign_score{score_t}(submat::Matrix{score_t}, gap_open::score_t, gap_extend::score_t, seq::seq_t, refs::Vector{seq_t})
+    func = score_t === Int8  ? :(:paralign_score_i8x32)  :
            score_t === Int16 ? :(:paralign_score_i16x16) :
            score_t === Int32 ? :(:paralign_score_i32x8) :
            error("not supported type: $score_t")
@@ -103,12 +103,22 @@ end
             ($(func), libsimdalign),
             Cint,
             (Ptr{Void}, submat_t{score_t}, score_t, score_t, seq_t, Ptr{seq_t}, Cint, Ptr{Void}),
-            buffer, submat_t(submat), gap_open, gap_extend, seq_t(seq), pointer(refs), length(refs), alns
+            buffer, submat_t(submat), gap_open, gap_extend, seq, pointer(refs), length(refs), alns
         )
         free_buffer(buffer)
         @assert ret == 0 "failed to align"
         return alns
     end
+end
+
+function paralign_score{score_t}(submat::Union{Matrix{score_t},SubstitutionMatrix{score_t}}, gap_open, gap_extend, seq, refs)
+    paralign_score(
+        convert(Matrix{score_t}, submat),
+        score_t(gap_open),
+        score_t(gap_extend),
+        seq_t(seq),
+        [seq_t(ref) for ref in refs]
+    )
 end
 
 end # module
