@@ -38,7 +38,12 @@ end
 
 function Base.call{T}(::Type{seq_t}, seq::NucleotideSequence{T}, reversed::Bool=false)
     byteseq = reinterpret(UInt8, seq.data)
-    offset = (reversed ? seq.part.stop : seq.part.start) - 1
+    len = length(seq)
+    if len == 0
+        offset = 0
+    else
+        offset = (reversed ? seq.part.stop : seq.part.start) - 1
+    end
     return seq_t(pointer(byteseq), length(seq), offset, reversed, true)
 end
 
