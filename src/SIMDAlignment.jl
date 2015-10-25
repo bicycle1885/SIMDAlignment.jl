@@ -8,6 +8,7 @@ export
     # functions
     paralign_score
 
+import Bio
 using Bio.Seq
 using Bio.Align
 
@@ -64,8 +65,8 @@ function Base.convert{T}(::Type{submat_t}, submat::SubstitutionMatrix{T})
 end
 
 # alignment result
-type alignment_t{T}
-    score::T
+type alignment_t
+    score::Int64
     trace::Ptr{UInt8}
     seqlen::Csize_t
     reflen::Csize_t
@@ -74,6 +75,10 @@ type alignment_t{T}
     function alignment_t()
         return new(0, C_NULL, 0, 0, 0, 0)
     end
+end
+
+function Bio.Align.score(aln::alignment_t)
+    return aln.score
 end
 
 function Base.show(io::IO, aln::alignment_t)
@@ -99,9 +104,9 @@ end
            score_t === Int32 ? :(:paralign_score_i32x8) :
            error("not supported type: $score_t")
     quote
-        alns = Vector{alignment_t{score_t}}()
+        alns = Vector{alignment_t}()
         for _ in 1:length(refs)
-            push!(alns, alignment_t{score_t}())
+            push!(alns, alignment_t())
         end
         buffer = make_buffer()
         ret = ccall(

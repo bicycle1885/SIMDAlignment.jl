@@ -23,7 +23,7 @@ function test_same_seqs{score_t}(::Type{score_t})
         end
         alns = paralign_score(submat, gap_open, gap_extend, seq, refs)
         for aln in alns
-            @test aln.score == 0
+            @test score(aln) == 0
         end
     end
 end
@@ -44,7 +44,7 @@ function test_empty_seq{score_t}(::Type{score_t})
         ref = refs[i]
         aln = alns[i]
         aln′ = pairalign(GlobalAlignment(), seq, ref, model)
-        @test aln.score == aln′.score
+        @test score(aln) == score(aln′)
     end
 end
 
@@ -83,7 +83,7 @@ function test_various_seqs{score_t}(::Type{score_t})
         ref = refs[i]
         aln = alns[i]
         aln′ = pairalign(GlobalAlignment(), seq, ref, model)
-        @test aln.score == aln′.score
+        @test score(aln) == score(aln′)
     end
 end
 
@@ -105,7 +105,7 @@ function test_reversed_seqs{score_t}(::Type{score_t})
         ref = reverse(refs[i])
         aln = alns[i]
         aln′ = pairalign(GlobalAlignment(), seq, ref, model)
-        @test aln.score == aln′.score
+        @test score(aln) == score(aln′)
     end
 end
 

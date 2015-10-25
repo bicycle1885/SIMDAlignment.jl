@@ -103,7 +103,7 @@ int paralign_score(buffer_t* buffer,
                    const seq_t seq,
                    const seq_t* refs,
                    const int n_refs,
-                   alignment_t<score_t>** alignments)
+                   alignment_t** alignments)
 {
     if (n_refs == 0)
         return 0;
@@ -195,7 +195,7 @@ int paralign_score_i8x16(buffer_t* buffer,
                          const seq_t seq,
                          const seq_t* refs,
                          const int n_refs,
-                         alignment_t<int8_t>** alignments)
+                         alignment_t** alignments)
 {
     return paralign_score<__m128i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }
@@ -207,7 +207,7 @@ int paralign_score_i16x8(buffer_t* buffer,
                          const seq_t seq,
                          const seq_t* refs,
                          const int n_refs,
-                         alignment_t<int16_t>** alignments)
+                         alignment_t** alignments)
 {
     return paralign_score<__m128i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }
@@ -219,7 +219,7 @@ int paralign_score_i32x4(buffer_t* buffer,
                          const seq_t seq,
                          const seq_t* refs,
                          const int n_refs,
-                         alignment_t<int32_t>** alignments)
+                         alignment_t** alignments)
 {
     return paralign_score<__m128i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }
@@ -233,7 +233,7 @@ int paralign_score_i8x32(buffer_t* buffer,
                          const seq_t seq,
                          const seq_t* refs,
                          const int n_refs,
-                         alignment_t<int8_t>** alignments)
+                         alignment_t** alignments)
 {
     return paralign_score<__m256i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }
@@ -245,7 +245,7 @@ int paralign_score_i16x16(buffer_t* buffer,
                           const seq_t seq,
                           const seq_t* refs,
                           const int n_refs,
-                          alignment_t<int16_t>** alignments)
+                          alignment_t** alignments)
 {
     return paralign_score<__m256i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }
@@ -257,7 +257,7 @@ int paralign_score_i32x8(buffer_t* buffer,
                          const seq_t seq,
                          const seq_t* refs,
                          const int n_refs,
-                         alignment_t<int32_t>** alignments)
+                         alignment_t** alignments)
 {
     return paralign_score<__m256i>(buffer, submat, gap_open, gap_extend, seq, refs, n_refs, alignments);
 }

@@ -49,10 +49,9 @@ struct submat_t
 };
 
 // alignment result
-template<typename T>
 struct alignment_t
 {
-    T score;
+    int64_t score;
     uint8_t* trace;
     size_t seqlen;
     size_t reflen;
@@ -60,7 +59,7 @@ struct alignment_t
     size_t endpos_ref;
 
     // score-only constructor
-    alignment_t(T score) :
+    alignment_t(const int64_t score) :
         score(score),
         trace(nullptr),
         seqlen(0),
@@ -91,7 +90,7 @@ extern "C"
                              const seq_t seq,
                              const seq_t* refs,
                              const int n_refs,
-                             alignment_t<int8_t>** alignments);
+                             alignment_t** alignments);
     int paralign_score_i16x8(buffer_t* buffer,
                              const submat_t<int16_t> submat,
                              const int16_t gap_open,
@@ -99,7 +98,7 @@ extern "C"
                              const seq_t seq,
                              const seq_t* refs,
                              const int n_refs,
-                             alignment_t<int16_t>** alignments);
+                             alignment_t** alignments);
     int paralign_score_i32x4(buffer_t* buffer,
                              const submat_t<int32_t> submat,
                              const int32_t gap_open,
@@ -107,7 +106,7 @@ extern "C"
                              const seq_t seq,
                              const seq_t* refs,
                              const int n_refs,
-                             alignment_t<int32_t>** alignments);
+                             alignment_t** alignments);
     int paralign_score_i8x32(buffer_t* buffer,
                              const submat_t<int8_t> submat,
                              const int8_t gap_open,
@@ -115,7 +114,7 @@ extern "C"
                              const seq_t seq,
                              const seq_t* refs,
                              const int n_refs,
-                             alignment_t<int8_t>** alignments);
+                             alignment_t** alignments);
     int paralign_score_i16x16(buffer_t* buffer,
                               const submat_t<int16_t> submat,
                               const int16_t gap_open,
@@ -123,7 +122,7 @@ extern "C"
                               const seq_t seq,
                               const seq_t* refs,
                               const int n_refs,
-                              alignment_t<int16_t>** alignments);
+                              alignment_t** alignments);
     int paralign_score_i32x8(buffer_t* buffer,
                              const submat_t<int32_t> submat,
                              const int32_t gap_open,
@@ -131,7 +130,7 @@ extern "C"
                              const seq_t seq,
                              const seq_t* refs,
                              const int n_refs,
-                             alignment_t<int32_t>** alignments);
+                             alignment_t** alignments);
 }
 
 #endif
