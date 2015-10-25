@@ -7,7 +7,7 @@ release: libsimdalign.so
 
 .PHONY: debug
 debug: CXXFLAGS = $(CXX_DEBUG_FLAGS)
-debug: libsimdalign.so
+debug: libsimdalign.so prof
 
 .PHONY: clean
 clean:
@@ -15,6 +15,9 @@ clean:
 
 libsimdalign.so: simdalign.o paralign.o
 	$(CXX) -dynamiclib $(CXXFLAGS) $^ -o $@
+
+prof: prof.cpp simdalign.o paralign.o
+	$(CXX) $(CXXFLAGS) -g $^ -o $@
 
 simdalign.o: simdalign.cpp simdalign.h simd.h
 	$(CXX) $(CXXFLAGS) -o $@ -c $<

@@ -1,6 +1,7 @@
 #ifndef SIMDALIGN_H
 #define SIMDALIGN_H
 
+#include <vector>
 #include "stdlib.h"
 #include "stdint.h"
 #include "simd.h"
@@ -8,15 +9,17 @@
 // sequence
 struct seq_t
 {
-    uint8_t* data;
+    const uint8_t* data;
     // sequence length
-    size_t len;
+    const size_t len;
     // the first position accessed by seq[0]
-    size_t offset;
+    const size_t offset;
     // data is organized in reversed order
-    bool reversed;
+    const bool reversed;
     // whether the seqnece is packed, used for DNA/RNA sequence
-    bool packed;
+    const bool packed;
+
+    seq_t(const std::vector<uint8_t>& data) : data(data.data()), len(data.size()), offset(0), reversed(false), packed(false) {}
 
     // NOTE: 0-based index unlike Julia
     inline uint8_t operator[](const size_t i) const {
@@ -44,8 +47,10 @@ struct profile_s
 template<typename T>
 struct submat_t
 {
-    T* data;
-    int size;
+    const T* data;
+    const int size;
+
+    submat_t(T* data, int size) : data(data), size(size) {};
 };
 
 // alignment result
