@@ -40,16 +40,24 @@ static bool is_vacant(const std::array<slot_t,n> slots)
 template<typename vec_t,typename score_t,size_t n>
 static void fill_profile(const seq_t* refs,
                          const std::array<slot_t,n>& slots,
-                         const submat_t<score_t> submat,
+                         const submat_t<score_t>& submat,
                          vec_t* profile)
 {
+    // prefetch characters in reference sequences
+    std::array<uint8_t,n> refchars;
+    for (int k = 0; k < n; k++) {
+        slot_t slot = slots[k];
+        if (slot == empty_slot)
+            continue;
+        refchars[k] = refs[slot.id][slot.pos];
+    }
     for (uint8_t seq_char = 0; seq_char < submat.size; seq_char++) {
         std::array<score_t,n> svec;
         for (int k = 0; k < n; k++) {
             slot_t slot = slots[k];
             if (slot == empty_slot)
                 continue;
-            uint8_t ref_char = refs[slot.id][slot.pos];
+            uint8_t ref_char = refchars[k];
             svec[k] = submat.data[ref_char * submat.size + seq_char];
         }
         profile[seq_char] = simd_set<score_t,n,vec_t>(svec);
