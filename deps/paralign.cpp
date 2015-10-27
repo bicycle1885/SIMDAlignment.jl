@@ -51,16 +51,16 @@ static void fill_profile(const seq_t* refs,
             continue;
         refchars[k] = refs[slot.id][slot.pos];
     }
-    for (uint8_t seq_char = 0; seq_char < submat.size; seq_char++) {
+    for (uint8_t seqchar = 0; seqchar < submat.size; seqchar++) {
         std::array<score_t,n> svec;
         for (int k = 0; k < n; k++) {
             slot_t slot = slots[k];
             if (slot == empty_slot)
                 continue;
-            uint8_t ref_char = refchars[k];
-            svec[k] = submat.data[ref_char * submat.size + seq_char];
+            uint8_t refchar = refchars[k];
+            svec[k] = submat.data[refchar * submat.size + seqchar];
         }
-        profile[seq_char] = simd_set<score_t,n,vec_t>(svec);
+        profile[seqchar] = simd_set<score_t,n,vec_t>(svec);
     }
 }
 
